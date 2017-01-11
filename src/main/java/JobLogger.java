@@ -23,96 +23,96 @@ import java.util.logging.Logger;
 
 public class JobLogger {
 
-    private static boolean logToFile;
-    private static boolean logToConsole;
-    private static boolean logMessage;
-    private static boolean logWarning;
-    private static boolean logError;
-    private static boolean logToDatabase;
+    private static boolean shouldLogInFile;
+    private static boolean shouldLogInConsole;
+    private static boolean isMessage;
+    private static boolean isWarning;
+    private static boolean isError;
+    private static boolean shouldLogInDataBase;
     private boolean initialized;
-    private static Map dbParams;
+    private static Map configuration;
     private static Logger logger;
 
-    public JobLogger(boolean logToFileParam, boolean logToConsoleParam, boolean logToDatabaseParam,
-            boolean logMessageParam, boolean logWarningParam, boolean logErrorParam, Map dbParamsMap) {
+    public JobLogger(boolean shouldLogInFile, boolean shouldLogInConsole, boolean shouldLogInDataBase,
+            boolean isMessage, boolean isWarning, boolean isError, Map configuration) {
         logger = Logger.getLogger("MyLog");
-        logError = logErrorParam;
-        logMessage = logMessageParam;
-        logWarning = logWarningParam;
-        logToDatabase = logToDatabaseParam;
-        logToFile = logToFileParam;
-        logToConsole = logToConsoleParam;
-        dbParams = dbParamsMap;
+        JobLogger.isError = isError;
+        JobLogger.isMessage = isMessage;
+        JobLogger.isWarning = isWarning;
+        JobLogger.shouldLogInDataBase = shouldLogInDataBase;
+        JobLogger.shouldLogInFile = shouldLogInFile;
+        JobLogger.shouldLogInConsole = shouldLogInConsole;
+        JobLogger.configuration = configuration;
     }
 
-    public static void LogMessage(String messageText, boolean message, boolean warning, boolean error) throws Exception {
+    public static void logBasedOnLevel(String messageText, boolean isMessage, boolean isWarning, boolean isError) throws Exception {
         messageText.trim();
         if (messageText == null || messageText.length() == 0) {
             return;
         }
-        if (!logToConsole && !logToFile && !logToDatabase) {
+        if (!JobLogger.shouldLogInConsole && !JobLogger.shouldLogInFile && !JobLogger.shouldLogInDataBase) {
             throw new Exception("Invalid configuration");
         }
-        if ((!logError && !logMessage && !logWarning) || (!message && !warning && !error)) {
+        if ((!JobLogger.isError && !JobLogger.isMessage && !JobLogger.isWarning) || (!isMessage && !isWarning && !isError)) {
             throw new Exception("Error or Warning or Message must be specified");
         }
 
         Connection connection = null;
         Properties connectionProps = new Properties();
-        connectionProps.put("user", dbParams.get("userName"));
-        connectionProps.put("password", dbParams.get("password"));
+        connectionProps.put("user", JobLogger.configuration.get("userName"));
+        connectionProps.put("password", JobLogger.configuration.get("password"));
 
-        connection = DriverManager.getConnection("jdbc:" + dbParams.get("dbms") + "://" + dbParams.get("serverName")
-                + ":" + dbParams.get("portNumber") + "/", connectionProps);
+        connection = DriverManager.getConnection("jdbc:" + JobLogger.configuration.get("dbms") + "://" + JobLogger.configuration.get("serverName")
+                + ":" + JobLogger.configuration.get("portNumber") + "/", connectionProps);
 
-        int t = 0;
-        if (message && logMessage) {
-            t = 1;
+        int levelCode = 0;
+        if (isMessage && JobLogger.isMessage) {
+            levelCode = 1;
         }
 
-        if (error && logError) {
-            t = 2;
+        if (isError && JobLogger.isError) {
+            levelCode = 2;
         }
 
-        if (warning && logWarning) {
-            t = 3;
+        if (isWarning && JobLogger.isWarning) {
+            levelCode = 3;
         }
 
-        Statement stmt = connection.createStatement();
+        Statement statement = connection.createStatement();
 
-        String l = null;
-        File logFile = new File(dbParams.get("logFileFolder") + "/logFile.txt");
+        String textToLog = null;
+        File logFile = new File(JobLogger.configuration.get("logFileFolder") + "/logFile.txt");
         if (!logFile.exists()) {
             logFile.createNewFile();
         }
 
-        FileHandler fh = new FileHandler(dbParams.get("logFileFolder") + "/logFile.txt");
-        ConsoleHandler ch = new ConsoleHandler();
+        FileHandler fileHandler = new FileHandler(JobLogger.configuration.get("logFileFolder") + "/logFile.txt");
+        ConsoleHandler consoleHandler = new ConsoleHandler();
 
-        if (error && logError) {
-            l = l + "error " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
+        if (isError && JobLogger.isError) {
+            textToLog = textToLog + "error " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
         }
 
-        if (warning && logWarning) {
-            l = l + "warning " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
+        if (isWarning && JobLogger.isWarning) {
+            textToLog = textToLog + "warning " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
         }
 
-        if (message && logMessage) {
-            l = l + "message " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
+        if (isMessage && JobLogger.isMessage) {
+            textToLog = textToLog + "message " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
         }
 
-        if (logToFile) {
-            logger.addHandler(fh);
+        if (JobLogger.shouldLogInFile) {
+            logger.addHandler(fileHandler);
             logger.log(Level.INFO, messageText);
         }
 
-        if (logToConsole) {
-            logger.addHandler(ch);
+        if (JobLogger.shouldLogInConsole) {
+            logger.addHandler(consoleHandler);
             logger.log(Level.INFO, messageText);
         }
 
-        if (logToDatabase) {
-            stmt.executeUpdate("insert into Log_Values('" + message + "', " + String.valueOf(t) + ")");
+        if (JobLogger.shouldLogInDataBase) {
+            statement.executeUpdate("insert into Log_Values('" + isMessage + "', " + String.valueOf(levelCode) + ")");
         }
     }
 }

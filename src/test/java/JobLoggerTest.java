@@ -4,49 +4,109 @@
  * and open the template in the editor.
  */
 
-import org.junit.After;
-import org.junit.AfterClass;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 
 /**
  *
  * @author Ricardo
  */
 public class JobLoggerTest {
-    
-    public JobLoggerTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Before
     public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+        JobLogger jobLogger = new JobLogger(false, false, false, false, false, false, null);
     }
 
-    /**
-     * Test of LogMessage method, of class JobLogger.
-     */
     @Test
-    public void testLogMessage() throws Exception {
+    public void testLogMessageEmpty() throws Exception {
         System.out.println("LogMessage");
         String messageText = "";
         boolean message = false;
         boolean warning = false;
         boolean error = false;
-        JobLogger.LogMessage(messageText, message, warning, error);
+        JobLogger.logBasedOnLevel(messageText, message, warning, error);
     }
-    
+
+    @Test
+    public void testLogMessageWithNoLevels() throws Exception {
+        System.out.println("LogMessage");
+        String messageText = "Hola Mundo";
+        boolean message = false;
+        boolean warning = false;
+        boolean error = false;
+
+        expectedException.expectMessage("Invalid configuration");
+
+        JobLogger.logBasedOnLevel(messageText, message, warning, error);
+    }
+
+    @Ignore
+    @Test
+    public void testLogMessageConsole() throws Exception {
+        System.out.println("LogMessage");
+        String messageText = "Hola Mundo";
+        boolean logToFile = false;
+        boolean logToConsole = true;
+        boolean logToDatabase = false;
+        boolean message = true;
+        boolean warning = false;
+        boolean error = false;
+        Map databaseConfiguration = null;
+
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, databaseConfiguration);
+
+        JobLogger.logBasedOnLevel(messageText, message, warning, error);
+    }
+
+    @Ignore
+    @Test
+    public void testLogMessageFile() throws Exception {
+        System.out.println("LogMessage");
+        String messageText = "Hola Mundo";
+        boolean logToFile = true;
+        boolean logToConsole = false;
+        boolean logToDatabase = false;
+        boolean message = true;
+        boolean warning = false;
+        boolean error = false;
+        Map configuration = new HashMap();
+        configuration.put("logFileFolder", ".");
+
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, configuration);
+
+        JobLogger.logBasedOnLevel(messageText, message, warning, error);
+    }
+
+    @Ignore
+    @Test
+    public void testLogMessageDataBase() throws Exception {
+        System.out.println("LogMessage");
+        String messageText = "Hola Mundo";
+        boolean logToFile = false;
+        boolean logToConsole = false;
+        boolean logToDatabase = true;
+        boolean message = true;
+        boolean warning = false;
+        boolean error = false;
+        Map configuration = new HashMap();
+        configuration.put("userName", "root");
+        configuration.put("password", "1234");
+        configuration.put("dbms", "oracle");
+        configuration.put("serverName", "oracle");
+        configuration.put("portNumber", "1521");
+
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, configuration);
+
+        JobLogger.logBasedOnLevel(messageText, message, warning, error);
+    }
+
 }
