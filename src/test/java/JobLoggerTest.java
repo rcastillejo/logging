@@ -5,17 +5,19 @@
  */
 
 import java.io.File;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
-import org.hamcrest.core.Is;
+import java.util.logging.ConsoleHandler;
 import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -36,6 +38,7 @@ public class JobLoggerTest {
         configuration.put("portNumber", "5432");
         configuration.put("logFileFolder", "D:");
         JobLogger jobLogger = new JobLogger(false, false, false, false, false, false, null);
+        JobLogger.createLogger();
     }
 
     @Test
@@ -49,15 +52,19 @@ public class JobLoggerTest {
     }
 
     @Test
-    public void testLogMessageWithNoLevels() throws Exception {
+    public void testLogMessageWithNoHandlers() throws Exception {
         System.out.println("LogMessage");
         String messageText = "Hola Mundo";
+        boolean logToConsole = false;
+        boolean logToFile = false;
+        boolean logToDatabase = false;
         boolean message = false;
         boolean warning = false;
         boolean error = false;
 
         expectedException.expectMessage("Invalid configuration");
 
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, null);
         JobLogger.logBasedOnLevel(messageText, message, warning, error);
     }
 
@@ -65,12 +72,15 @@ public class JobLoggerTest {
     public void testLogMessageWithNoLevelSpecified() throws Exception {
         System.out.println("LogMessage");
         String messageText = "Hola Mundo";
+        boolean logToConsole = true;
+        boolean logToFile = false;
+        boolean logToDatabase = false;
         boolean message = false;
         boolean warning = false;
         boolean error = false;
         expectedException.expectMessage("Error or Warning or Message must be specified");
 
-        JobLogger jobLogger = new JobLogger(true, true, true, true, true, true, null);
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, null);
         JobLogger.logBasedOnLevel(messageText, message, warning, error);
     }
 
@@ -87,6 +97,8 @@ public class JobLoggerTest {
         Map databaseConfiguration = null;
 
         JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, databaseConfiguration);
+
+        JobLogger.addHandlder(new ConsoleHandler());
 
         JobLogger.logBasedOnLevel(messageText, message, warning, error);
     }
@@ -107,8 +119,12 @@ public class JobLoggerTest {
 
         JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, configuration);
 
+        JobFileHandler handler = new JobFileHandler(configuration);
+
+        JobLogger.addHandlder(handler);
         JobLogger.logBasedOnLevel(messageText, message, warning, error);
 
+        assertEquals("./logFile.txt", handler.getPathname());
         assertTrue(new File(folder, "logFile.txt").exists());
     }
 
@@ -132,16 +148,27 @@ public class JobLoggerTest {
 
         JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, configuration);
 
+        DummyDataBaseHandler handler = new DummyDataBaseHandler(configuration);
+        JobLogger.addHandlder(handler);
         JobLogger.logBasedOnLevel(messageText, message, warning, error);
+
+        String sqlCommand = handler.getSqlCommand();
+        System.out.println("sqlCommand: " + sqlCommand);
+
+        Assert.assertTrue(sqlCommand.startsWith("insert into Log_Values('message "));
+        Assert.assertTrue(sqlCommand.endsWith("Hola Mundo',1);"));
     }
 
     @Test
     public void testFormatMessage() {
+        boolean logToFile = false;
+        boolean logToConsole = true;
+        boolean logToDatabase = false;
         boolean message = true;
         boolean warning = false;
         boolean error = false;
 
-        JobLogger jobLogger = new JobLogger(true, true, true, true, true, true, null);
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, null);
 
         String result = JobLogger.formatTextLog("Hola Mundo", message, warning, error);
         System.out.println("result: " + result);
@@ -151,11 +178,14 @@ public class JobLoggerTest {
 
     @Test
     public void testFormatMessageWarning() {
+        boolean logToFile = false;
+        boolean logToConsole = true;
+        boolean logToDatabase = false;
         boolean message = false;
         boolean warning = true;
         boolean error = false;
 
-        JobLogger jobLogger = new JobLogger(true, true, true, true, true, true, null);
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, null);
 
         String result = JobLogger.formatTextLog("Hola Mundo", message, warning, error);
         System.out.println("result: " + result);
@@ -165,11 +195,14 @@ public class JobLoggerTest {
 
     @Test
     public void testFormatMessageError() {
+        boolean logToFile = false;
+        boolean logToConsole = true;
+        boolean logToDatabase = false;
         boolean message = false;
         boolean warning = false;
         boolean error = true;
 
-        JobLogger jobLogger = new JobLogger(true, true, true, true, true, true, null);
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, null);
 
         String result = JobLogger.formatTextLog("Hola Mundo", message, warning, error);
         System.out.println("result: " + result);
@@ -179,16 +212,23 @@ public class JobLoggerTest {
 
     @Test
     public void testFormatWarningAndError() {
+        boolean logToFile = false;
+        boolean logToConsole = true;
+        boolean logToDatabase = false;
         boolean message = false;
-        boolean warning = true;
-        boolean error = true;
+        boolean warning = false;
+        boolean error = false;
 
-        JobLogger jobLogger = new JobLogger(true, true, true, true, true, true, null);
+        JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, true, true, true, null);
 
-        String result = JobLogger.formatTextLog("Hola Mundo", message, warning, error);
+        String result = JobLogger.formatTextLog("Hola Mundo", message, true, error);
+        System.out.println("result: " + result);
+        Assert.assertTrue(result.startsWith("warning "));
+        Assert.assertTrue(result.endsWith("Hola Mundo"));
+
+        result = JobLogger.formatTextLog("Hola Mundo", message, warning, true);
         System.out.println("result: " + result);
         Assert.assertTrue(result.startsWith("error "));
-        Assert.assertTrue(result.contains("Hola Mundowarning"));
         Assert.assertTrue(result.endsWith("Hola Mundo"));
     }
 
