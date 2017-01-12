@@ -10,121 +10,124 @@
  */
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class JobLogger {
 
-    private static boolean isMessage;
-    private static boolean isWarning;
-    private static boolean isError;
-    private boolean initialized;
-    private static Map configuration;
+    private static final String LOGGER_NAME = "MyLog";
+
     private static Logger logger;
+    private static Map configuration;
+    private static List<JobLoggerOutput> loggerOutputs;
 
     public JobLogger(boolean shouldLogInFile, boolean shouldLogInConsole, boolean shouldLogInDataBase,
             boolean isMessage, boolean isWarning, boolean isError, Map configuration) {
-        createLogger();
+        JobLoggerLevel level = JobLoggerLevel.getLoggerLevel(isMessage, isWarning, isError);
+        List<JobLoggerOutput> outputs = JobLoggerOutput.getLoggerOutputs(shouldLogInFile, shouldLogInConsole, shouldLogInDataBase);
+        config(level, configuration, outputs);
+    }
 
-        JobLogger.isError = isError;
-        JobLogger.isMessage = isMessage;
-        JobLogger.isWarning = isWarning;
+    public static void logBasedOnLevel(String messageText, boolean isMessage, boolean isWarning, boolean isError) throws Exception {
+        JobLoggerLevel level;
+        level = JobLoggerLevel.getLoggerLevel(isMessage, isWarning, isError);
+        logBasedOnLevel(messageText, level);
+    }
 
+    public static void config(JobLoggerLevel loggerLevel, Map configuration, List<JobLoggerOutput> loggerOutputs) {
+        logger = Logger.getLogger(LOGGER_NAME);
         setConfiguration(configuration);
-        setHandlers(shouldLogInFile, shouldLogInConsole, shouldLogInDataBase);
+
+        setLoggerOutputs(loggerOutputs);
+        validateLoggerOutputs();
+
+        setLevel(loggerLevel);
+        validateLoggerLevel();
+    }
+
+    public static void logBasedOnLevel(String messageText, JobLoggerLevel level) throws Exception {
+        if (isMessageEmpty(messageText)) {
+            return;
+        }
+        validateLevel(level);
+        messageText = messageText.trim();
+        String textToLog = formatTextLog(messageText, level);
+        addLoggerOutputs();
+        showLog(level, textToLog);
+    }
+
+    private static boolean isMessageEmpty(String messageText) {
+        return messageText == null || messageText.length() == 0;
+    }
+
+    private static void validateLoggerOutputs() {
+        if (loggerOutputs == null || loggerOutputs.isEmpty()) {
+            throw new RuntimeException("Invalid configuration");
+        }
+    }
+
+    private static void validateLoggerLevel() {
+        if (logger.getLevel() == null) {
+            throw new RuntimeException("Error or Warning or Message must be specified");
+        }
+    }
+
+    private static void validateLevel(JobLoggerLevel level) throws Exception {
+        if (level == null) {
+            throw new RuntimeException("Error or Warning or Message must be specified");
+        }
+    }
+
+    private static void showLog(JobLoggerLevel level, String messageText) {
+        logger.log(level, messageText);
+    }
+
+    public static String formatTextLog(String messageText, JobLoggerLevel level) {
+        StringBuilder textToLog = new StringBuilder();
+        textToLog.append(level.getName());
+        textToLog.append(" ");
+        textToLog.append(DateFormat.getDateInstance(DateFormat.LONG).format(new Date()));
+        textToLog.append(messageText);
+        return textToLog.toString();
+    }
+
+    public static void getAndSetLoggerLevel(boolean isMessage, boolean isWarning, boolean isError) {
+        JobLoggerLevel level = JobLoggerLevel.getLoggerLevel(isMessage, isWarning, isError);
+        setLevel(level);
+    }
+
+    private static void addLoggerOutputs() {
+        for (JobLoggerOutput output : loggerOutputs) {
+            addLoggerOutput(output);
+        }
+    }
+
+    public static void addLoggerOutput(JobLoggerOutput jobOutput) {
+        configAndAddOutput(jobOutput.getOutput());
+    }
+
+    protected static void configAndAddOutput(JobOutput output) {
+        output.config(configuration);
+        addHandlder(output.getHandler());
+    }
+
+    private static void addHandlder(Handler handler) {
+        handler.setLevel(logger.getLevel());
+        logger.removeHandler(handler);
+        logger.addHandler(handler);
+    }
+
+    public static void setLevel(JobLoggerLevel level) {
+        logger.setLevel(level);
     }
 
     private static void setConfiguration(Map configuration) {
         JobLogger.configuration = configuration;
     }
 
-    private static void setHandlers(boolean shouldLogInFile, boolean shouldLogInConsole, boolean shouldLogInDataBase) {
-        try {
-
-            if (shouldLogInConsole) {
-                addHandlder(new ConsoleHandler());
-            }
-            if (shouldLogInFile) {
-                addHandlder(new JobFileHandler(configuration));
-            }
-            if (shouldLogInDataBase) {
-                addHandlder(new JobDataBaseHandler(configuration));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error while set Handlers", e);
-        }
-    }
-
-    public static void createLogger() {
-        logger = Logger.getLogger("MyLog");
-    }
-
-    public static void addHandlder(Handler handler) {
-        logger.addHandler(handler);
-    }
-
-    public static void logBasedOnLevel(String messageText, boolean isMessage, boolean isWarning, boolean isError) throws Exception {
-        //public static void logBasedOnLevel(String messageText, JobLoggerLevel level) throws Exception {
-        if (isMessageEmpty(messageText)) {
-            return;
-        }
-        validateHandlers();
-        validateLevel(isMessage, isWarning, isError);
-
-        messageText = messageText.trim();
-
-        String textToLog = formatTextLog(messageText, isMessage, isWarning, isError);
-
-        showLog(null, textToLog);
-    }
-
-    public static void showLog(JobLoggerLevel level, String messageText) {
-        logger.log(Level.INFO, messageText);
-    }
-
-    public static String formatTextLog(String messageText, boolean isMessage, boolean isWarning, boolean isError) {
-        String textToLog = "";
-        if (isError && JobLogger.isError) {
-            textToLog = textToLog + "error " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
-        } else if (isWarning && JobLogger.isWarning) {
-            textToLog = textToLog + "warning " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
-        } else if (isMessage && JobLogger.isMessage) {
-            textToLog = textToLog + "message " + DateFormat.getDateInstance(DateFormat.LONG).format(new Date()) + messageText;
-        }
-        return textToLog;
-    }
-
-    private static int getLevelCode() {
-        int levelCode = 0;
-        if (isMessage && JobLogger.isMessage) {
-            levelCode = 1;
-        }
-        if (isError && JobLogger.isError) {
-            levelCode = 2;
-        }
-        if (isWarning && JobLogger.isWarning) {
-            levelCode = 3;
-        }
-        return levelCode;
-    }
-
-    private static void validateHandlers() throws Exception {
-        Handler[] handlers = logger.getHandlers();
-        if (handlers == null || handlers.length == 0) {
-            throw new Exception("Invalid configuration");
-        }
-    }
-
-    private static void validateLevel(boolean isMessage, boolean isWarning, boolean isError) throws Exception {
-        if ((!JobLogger.isError && !JobLogger.isMessage && !JobLogger.isWarning) || (!isError && !isMessage && !isWarning)) {
-            throw new Exception("Error or Warning or Message must be specified");
-        }
-    }
-
-    public static boolean isMessageEmpty(String messageText) {
-        return messageText == null || messageText.length() == 0;
+    public static void setLoggerOutputs(List<JobLoggerOutput> loggerOutputs) {
+        JobLogger.loggerOutputs = loggerOutputs;
     }
 }

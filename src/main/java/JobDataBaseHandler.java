@@ -19,14 +19,14 @@ import java.util.logging.Logger;
  *
  * @author Ricardo
  */
-public class JobDataBaseHandler extends Handler {
+public class JobDataBaseHandler extends Handler implements JobOutput {
 
-    private final Properties connectionProperties;
-    private final String dbms;
-    private final String serverName;
-    private final String portNumber;
+    private Properties connectionProperties;
+    private String dbms;
+    private String serverName;
+    private String portNumber;
 
-    public JobDataBaseHandler(Map<String, String> configuration) {
+    public void config(Map<String, String> configuration) {
         connectionProperties = new Properties();
         connectionProperties.put("user", configuration.get("userName"));
         connectionProperties.put("password", configuration.get("password"));
@@ -92,5 +92,9 @@ public class JobDataBaseHandler extends Handler {
                 Logger.getLogger(JobLogger.class.getName()).log(Level.WARNING, null, e);
             }
         }
+    }
+
+    public Handler getHandler() {
+        return this;
     }
 }

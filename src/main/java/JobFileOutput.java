@@ -6,34 +6,30 @@
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Map;
-import java.util.Properties;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 
 /**
  *
  * @author Ricardo
  */
-public class JobFileHandler extends Handler {
+public class JobFileOutput implements JobOutput {
 
     private static final String FILE_FOLDER_PARAM = "logFileFolder";
     private static final String FILE_NAME = "logFile.txt";
 
-    private final String pathname;
-    private final FileHandler fileHandler;
+    private String pathname;
+    private FileHandler fileHandler;
 
-    public JobFileHandler(Map configuration) throws IOException  {
-        this.pathname = readPathname(configuration);
-        verifyLogFile(pathname);
-        this.fileHandler = new FileHandler(pathname);
+    public void config(Map configuration) {
+        try {
+            this.pathname = readPathname(configuration);
+            verifyLogFile(pathname);
+            this.fileHandler = new FileHandler(pathname);
+        } catch (Exception e) {
+            throw new RuntimeException("Error while configurate", e);
+        }
     }
 
     private String readPathname(Map configuration) {
@@ -47,23 +43,11 @@ public class JobFileHandler extends Handler {
         }
     }
 
-    @Override
-    public void publish(LogRecord record) {
-        fileHandler.publish(record);
-    }
-
-    @Override
-    public void flush() {
-        fileHandler.flush();
-    }
-
-    @Override
-    public void close() throws SecurityException {
-        fileHandler.close();
-    }
-
     public String getPathname() {
         return pathname;
     }
 
+    public Handler getHandler() {
+        return fileHandler;
+    }
 }

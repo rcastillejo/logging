@@ -2,7 +2,6 @@
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Map;
 import java.util.logging.LogRecord;
 
 /*
@@ -17,10 +16,6 @@ import java.util.logging.LogRecord;
 public class DummyDataBaseHandler extends JobDataBaseHandler {
 
     private String sqlCommand;
-
-    public DummyDataBaseHandler(Map configuration) {
-        super(configuration);
-    }
 
     @Override
     protected void closeConnection(Connection connection) {
