@@ -23,6 +23,19 @@ public class JobLogger {
     private static Map configuration;
     private static List<JobLoggerOutput> loggerOutputs;
 
+    /**
+     * Este metodo permite configurar el nivel de log, dispositivo de salida
+     * mediante configuracion.
+     *
+     * @param shouldLogInFile
+     * @param shouldLogInConsole
+     * @param shouldLogInDataBase
+     * @param isMessage
+     * @param isWarning
+     * @param isError
+     * @param configuration
+     * @deprecated Debe ser reemplazado mediante el metodo estatico config.
+     */
     @Deprecated
     public JobLogger(boolean shouldLogInFile, boolean shouldLogInConsole, boolean shouldLogInDataBase,
             boolean isMessage, boolean isWarning, boolean isError, Map configuration) {
@@ -31,6 +44,16 @@ public class JobLogger {
         config(level, configuration, outputs);
     }
 
+    /**
+     * Permite registrar un mensaje de acuerdo al nivel habilitado.
+     *
+     * @param messageText Mensaje a registrar
+     * @param isMessage
+     * @param isWarning
+     * @param isError
+     * @throws Exception
+     * @deprecated Debe ser reemplazado por el metodo estatico logBasedOnLevel
+     */
     @Deprecated
     public static void LogMessage(String messageText, boolean isMessage, boolean isWarning, boolean isError) throws Exception {
         JobLoggerLevel level;
@@ -38,6 +61,14 @@ public class JobLogger {
         logBasedOnLevel(messageText, level);
     }
 
+    /**
+     * Configura la clase para definir el nivel de log, asi como agregar los
+     * dispositivos de salida.
+     *
+     * @param loggerLevel nivel del log.
+     * @param configuration Configuracion para los dispositivos de salida.
+     * @param loggerOutputs dispositivos de salida
+     */
     public static void config(JobLoggerLevel loggerLevel, Map configuration, List<JobLoggerOutput> loggerOutputs) {
         logger = Logger.getLogger(LOGGER_NAME);
         setConfiguration(configuration);
@@ -49,19 +80,24 @@ public class JobLogger {
         validateLoggerLevel();
     }
 
-    public static void logBasedOnLevel(String messageText, JobLoggerLevel level) throws Exception {
-        if (isMessageEmpty(messageText)) {
-            return;
+    /**
+     * Registra el mensaje mediante el nivel del log
+     *
+     * @param messageText Mensaje
+     * @param level Nivel de Log
+     */
+    public static void logBasedOnLevel(String messageText, JobLoggerLevel level) {
+        if (isMessageNotEmpty(messageText)) {
+            validateLevel(level);
+            messageText = messageText.trim();
+            String textToLog = formatTextLog(messageText, level);
+            addLoggerOutputs();
+            showLog(level, textToLog);
         }
-        validateLevel(level);
-        messageText = messageText.trim();
-        String textToLog = formatTextLog(messageText, level);
-        addLoggerOutputs();
-        showLog(level, textToLog);
     }
 
-    private static boolean isMessageEmpty(String messageText) {
-        return messageText == null || messageText.length() == 0;
+    private static boolean isMessageNotEmpty(String messageText) {
+        return !(messageText == null || messageText.length() == 0);
     }
 
     private static void validateLoggerOutputs() {
@@ -76,7 +112,7 @@ public class JobLogger {
         }
     }
 
-    private static void validateLevel(JobLoggerLevel level) throws Exception {
+    private static void validateLevel(JobLoggerLevel level) {
         if (level == null) {
             throw new RuntimeException("Error or Warning or Message must be specified");
         }
@@ -86,7 +122,7 @@ public class JobLogger {
         logger.log(level, messageText);
     }
 
-    public static String formatTextLog(String messageText, JobLoggerLevel level) {
+    protected static String formatTextLog(String messageText, JobLoggerLevel level) {
         StringBuilder textToLog = new StringBuilder();
         textToLog.append(level.getName());
         textToLog.append(" ");
