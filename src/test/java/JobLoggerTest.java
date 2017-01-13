@@ -90,7 +90,7 @@ public class JobLoggerTest {
         boolean warning = false;
         boolean error = false;
 
-        JobLogger.logBasedOnLevel(messageText, message, warning, error);
+        JobLogger.LogMessage(messageText, message, warning, error);
     }
 
     @Test
@@ -109,7 +109,7 @@ public class JobLoggerTest {
 
         JobLogger.addLoggerOutput(JobLoggerOutput.CONSOLE);
 
-        JobLogger.logBasedOnLevel(messageText, message, warning, error);
+        JobLogger.LogMessage(messageText, message, warning, error);
     }
 
     @Test
@@ -128,7 +128,7 @@ public class JobLoggerTest {
 
         JobLogger jobLogger = new JobLogger(logToFile, logToConsole, logToDatabase, message, warning, error, configuration);
         JobLogger.addLoggerOutput(JobLoggerOutput.CONSOLE);
-        JobLogger.logBasedOnLevel(messageText, message, warning, error);
+        JobLogger.LogMessage(messageText, message, warning, error);
 
         assertTrue(new File(folder, "logFile.txt").exists());
     }
@@ -154,7 +154,7 @@ public class JobLoggerTest {
 
         DummyDataBaseHandler handler = new DummyDataBaseHandler();
         JobLogger.configAndAddOutput(handler);
-        JobLogger.logBasedOnLevel(messageText, message, warning, error);
+        JobLogger.LogMessage(messageText, message, warning, error);
 
         String sqlCommand = handler.getSqlCommand();
         System.out.println("sqlCommand: " + sqlCommand);

@@ -23,6 +23,7 @@ public class JobLogger {
     private static Map configuration;
     private static List<JobLoggerOutput> loggerOutputs;
 
+    @Deprecated
     public JobLogger(boolean shouldLogInFile, boolean shouldLogInConsole, boolean shouldLogInDataBase,
             boolean isMessage, boolean isWarning, boolean isError, Map configuration) {
         JobLoggerLevel level = JobLoggerLevel.getLoggerLevel(isMessage, isWarning, isError);
@@ -30,7 +31,8 @@ public class JobLogger {
         config(level, configuration, outputs);
     }
 
-    public static void logBasedOnLevel(String messageText, boolean isMessage, boolean isWarning, boolean isError) throws Exception {
+    @Deprecated
+    public static void LogMessage(String messageText, boolean isMessage, boolean isWarning, boolean isError) throws Exception {
         JobLoggerLevel level;
         level = JobLoggerLevel.getLoggerLevel(isMessage, isWarning, isError);
         logBasedOnLevel(messageText, level);
@@ -110,10 +112,10 @@ public class JobLogger {
 
     protected static void configAndAddOutput(JobOutput output) {
         output.config(configuration);
-        addHandlder(output.getHandler());
+        removeAndAddHandlder(output.getHandler());
     }
 
-    private static void addHandlder(Handler handler) {
+    private static void removeAndAddHandlder(Handler handler) {
         handler.setLevel(logger.getLevel());
         logger.removeHandler(handler);
         logger.addHandler(handler);

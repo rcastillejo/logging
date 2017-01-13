@@ -19,14 +19,13 @@ public class JobFileOutput implements JobOutput {
     private static final String FILE_FOLDER_PARAM = "logFileFolder";
     private static final String FILE_NAME = "logFile.txt";
 
-    private String pathname;
     private FileHandler fileHandler;
 
     public void config(Map configuration) {
         try {
-            this.pathname = readPathname(configuration);
+            String pathname = readPathname(configuration);
             verifyLogFile(pathname);
-            this.fileHandler = new FileHandler(pathname);
+            fileHandler = new FileHandler(pathname);
         } catch (Exception e) {
             throw new RuntimeException("Error while configurate", e);
         }
@@ -41,10 +40,6 @@ public class JobFileOutput implements JobOutput {
         if (!logFile.exists()) {
             logFile.createNewFile();
         }
-    }
-
-    public String getPathname() {
-        return pathname;
     }
 
     public Handler getHandler() {
